@@ -1,7 +1,6 @@
-# mypy reports many problems.
-# type: ignore
 """Rope preferences."""
 from dataclasses import asdict, dataclass
+from enum import Enum
 from textwrap import dedent
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -37,6 +36,20 @@ class AutoimportPrefs:
 
 
 @dataclass
+class ImportPrefs:
+    preferred_import_style: str = field(
+        default="default",
+        description=dedent("""
+            Controls how rope inserts new import statements. If set to
+            ``"normal-import"`` (default) will insert ``import <package>``; if
+            set to ``"from-module"`` will insert ``from <package> import
+            <module>``; if set to ``"from-global"`` rope will insert ``from
+            <package>.<module> import <object>``.
+        """),
+    )
+
+
+@dataclass
 class Prefs:
     """Class to store rope preferences."""
 
@@ -54,6 +67,7 @@ class Prefs:
             "venv",
             ".mypy_cache",
             ".pytest_cache",
+            "node_modules",
         ],
         description=dedent("""
             Specify which files and folders to ignore in the project.
@@ -151,7 +165,7 @@ Builtin and c-extension modules that are allowed to be imported and inspected by
         default=False,
         description=dedent("""
             If ``True`` modules with syntax errors are considered to be empty.
-            The default value is ``False``; When ``False`` syntax errors raise
+            The default value is ``False``; when ``False`` syntax errors raise
             ``rope.base.exceptions.ModuleSyntaxError`` exception.
         """),
     )
@@ -166,8 +180,8 @@ Builtin and c-extension modules that are allowed to be imported and inspected by
     prefer_module_from_imports: bool = field(
         default=False,
         description=dedent("""
-            If ``True``, rope will insert new module imports as ``from
-            <package> import <module>`` by default.
+            **Deprecated**. ``imports.preferred_import_style`` takes
+            precedence over ``prefer_module_from_imports``.
         """),
     )
 
@@ -205,7 +219,7 @@ Builtin and c-extension modules that are allowed to be imported and inspected by
             In general case, you don't have to change this value, unless you're
             an rope expert.  Change this value to inject you own
             implementations of interfaces listed in module
-            ``rope.base.oi.type_hinting.providers.interfaces`` 
+            ``rope.base.oi.type_hinting.providers.interfaces``
 
             For example, you can add you own providers for Django Models, or
             disable the search type-hinting in a class hierarchy, etc.
@@ -234,7 +248,13 @@ Builtin and c-extension modules that are allowed to be imported and inspected by
         """),
     )
     autoimport: AutoimportPrefs = field(
-        default_factory=AutoimportPrefs, description="Preferences for Autoimport")
+        default_factory=AutoimportPrefs,
+        description="Preferences for Autoimport",
+    )
+    imports: ImportPrefs = field(
+        default_factory=ImportPrefs,
+        description="Preferences for Import Organiser",
+    )
 
     def set(self, key: str, value: Any):
         """Set the value of `key` preference to `value`."""
@@ -322,3 +342,21 @@ def get_config(root: Folder, ropefolder: Folder) -> PyToolConfig:
         global_config=True,
     )
     return config
+
+
+class ImportStyle(Enum):  # FIXME: Use StrEnum once we're on minimum Python 3.11
+    normal_import = "normal-import"
+    from_module = "from-module"
+    from_global = "from-global"
+
+
+DEFAULT_IMPORT_STYLE = ImportStyle.normal_import
+
+
+def get_preferred_import_style(prefs: Prefs) -> ImportStyle:
+    try:
+        return ImportStyle(prefs.imports.preferred_import_style)
+    except ValueError:
+        if prefs.imports.preferred_import_style == "default" and prefs.prefer_module_from_imports:
+            return ImportStyle.from_module
+        return DEFAULT_IMPORT_STYLE

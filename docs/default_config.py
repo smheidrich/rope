@@ -28,6 +28,7 @@ def set_prefs(prefs):
     #        "venv",
     #        ".mypy_cache",
     #        ".pytest_cache",
+    #        "node_modules",
     #    ]
 
     # Specifies which files should be considered python files.  It is
@@ -107,10 +108,13 @@ def set_prefs(prefs):
     #
     #     prefs["ignore_bad_imports"] = False
 
-    # If `True`, rope will insert new module imports as
-    # `from <package> import <module>` by default.
+    # Controls how rope inserts new import statements. Must be one of:
     #
-    #     prefs["prefer_module_from_imports"] = False
+    # - "normal-import" will insert `import <package>`
+    # - "from-module" will insert `from <package> import <module>`
+    # - "from-global" insert insert `from <package>.<module> import <object>`
+    #
+    #     prefs.imports.preferred_import_style = "normal-import"
 
     # If `True`, rope will transform a comma list of imports into
     # multiple separate import statements when organizing
